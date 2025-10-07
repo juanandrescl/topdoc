@@ -16,9 +16,8 @@ Aprendizajes y reflexiones:
 
 10. 
 <img width="600" alt="image" src="https://github.com/user-attachments/assets/d4654324-51f1-4715-9780-abc9a145a575" />
-Acá un screenshot del systema corriendo en mi computador local.
 
-
+Acá un screenshot del systema corriendo en mi computador local
 
 
 MUCHAS GRACIAS POR EL FEEDBACK.
