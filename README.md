@@ -9,7 +9,7 @@ Simple queue-based system for processing lab results with retry logic and dead-l
 - Retries failed jobs up to 3 times
 - Moves unrecoverable jobs to dead-letter queue
 - Tracks successful and failed jobs
-- Provides statistics endpoint
+- Provides statistics endpoint.
 
 ## Installation
 
