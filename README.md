@@ -24,6 +24,8 @@ MUCHAS GRACIAS POR EL FEEDBACK.
 Saludos.
 
 
+**** VERSION FINAL ****
+
 # Lab Results Queue System
 
 Simple queue-based system for processing lab results with retry logic and dead-letter queue.
