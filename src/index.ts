@@ -82,7 +82,7 @@ app.get('/stats', async (req: Request, res: Response) => {
 // Health check endpoint for Cloud Run
 app.get('/health', (req: Request, res: Response) => {
     res.status(200).json({ 
-        status: 'healthy como una lechuga', 
+        status: 'healthy como una zanahoria', 
         timestamp: new Date().toISOString(),
         redis: process.env.REDIS_HOST || 'not configured'
     });
