@@ -17,7 +17,7 @@ async function getQueues() {
             deadLetterQueue = dlq;
             console.log('✅ Connected to Redis queues');
         } catch (error) {
-            console.error('❌ Failed to connect to Redis:', error.message);
+            console.error('❌ Failed to connect to Redis:', (error as Error).message);
             throw error;
         }
     }
@@ -62,10 +62,10 @@ app.post('/lab-results', validateLabResult, async (req: Request<{}, {}, LabResul
             data: labResult
         });
     } catch (error) {
-        console.error('Queue error:', error.message);
+        console.error('Queue error:', (error as Error).message);
         res.status(500).json({
             error: 'Failed to queue job - Redis connection issue',
-            message: error.message,
+            message: (error as Error).message,
             data: labResult
         });
     }
@@ -86,10 +86,10 @@ app.get('/stats', async (req: Request, res: Response) => {
             total: completedCount + deadLetterCount
         });
     } catch (error) {
-        console.error('Stats error:', error.message);
+        console.error('Stats error:', (error as Error).message);
         res.status(500).json({
             error: 'Failed to get stats - Redis connection issue',
-            message: error.message
+            message: (error as Error).message
         });
     }
 });
