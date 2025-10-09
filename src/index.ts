@@ -57,7 +57,7 @@ app.get('/stats', async (req: Request, res: Response) => {
 
 // Health check endpoint for Cloud Run
 app.get('/health', (req: Request, res: Response) => {
-    res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+    res.status(200).json({ status: 'healthy como una lechuga', timestamp: new Date().toISOString() });
 });
 
 // CRITICAL: Listen on the PORT environment variable

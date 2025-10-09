@@ -178,6 +178,9 @@ gcloud run services describe topdoc-api --region=us-central1 --format="value(sta
 
 ```bash
 # Replace YOUR_CLOUD_RUN_URL with the actual URL
+
+https://topdoc-api-260193173549.us-central1.run.app
+
 curl -X POST https://YOUR_CLOUD_RUN_URL/lab-results \
   -H "Content-Type: application/json" \
   -d '{
@@ -200,18 +203,45 @@ gcloud redis instances create topdoc-redis \
 gcloud redis instances describe topdoc-redis --region=us-central1 --format="value(host)"
 
 # Update Cloud Run with Redis
+
+
 gcloud run services update topdoc-api \
     --region=us-central1 \
-    --set-env-vars="REDIS_HOST=REDIS_IP_HERE"
-```
+    --set-env-vars="REDIS_HOST=10.254.141.75"
 
 ## That's it! 
 
 **Your pipeline now:**
-- ✅ Builds on every push to main
+- ✅ Builds on every push to main-
 - ✅ Deploys to Cloud Run automatically  
 - ✅ Uses secure service account
 - ✅ Stores images in Artifact Registry
 - ✅ Scales automatically (0-10 instances)
 
 **Total setup time: ~10 minutes**
+
+
+
+
+fixex por no conectividad a redis
+
+# Create subnet with /28 netmask (16 IP addresses)
+gcloud compute networks subnets create topdoc-connector-subnet \
+    --network=default \
+    --range=10.8.0.0/28 \
+    --region=us-central1
+
+# Create VPC connector to access Redis private network
+gcloud compute networks vpc-access connectors create topdoc-connector \
+    --region=us-central1 \
+    --subnet=default \
+    --min-instances=2 \
+    --max-instances=3
+
+
+
+
+gcloud run services update topdoc-api \
+    --region=us-central1 \
+    --vpc-connector=topdoc-connector \
+    --set-env-vars="REDIS_HOST=10.254.141.75"
