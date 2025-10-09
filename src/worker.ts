@@ -1,7 +1,7 @@
 import { Worker } from 'bullmq';
 import { LabResult, JobRecord } from './types';
 import { MAX_RETRIES, REDIS_CONFIG } from './config';
-import { deadLetterQueue } from './queue';
+import { getDeadLetterQueue } from './queue';
 
 const successfulJobs: JobRecord[] = [];
 const failedJobs: JobRecord[] = [];
@@ -72,6 +72,8 @@ worker.on('failed', async (job, err) => {
         console.log(`Failed at: ${new Date().toISOString()}`);
         console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         
+        // Use the function to get the queue instance
+        const deadLetterQueue = getDeadLetterQueue();
         await deadLetterQueue.add('failed-job', {
             originalJobId: job.id,
             data: job.data,
