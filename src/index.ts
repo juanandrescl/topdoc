@@ -1,28 +1,25 @@
 import express, { Request, Response } from 'express';
-import { LabResult } from './types';
+import { LabResult, JobRecord } from './types';
 import { labResultsQueue, deadLetterQueue } from './queue';
-import { MAX_RETRIES } from './config';
+import { MAX_RETRIES, PORT } from './config';
 
 const app = express();
-const PORT = 3000;
-
 app.use(express.json());
 
-app.post('/lab-results', async (req: Request<{}, {}, LabResult>, res: Response) => {
-    const { patientId, labType, result, receivedAt }: LabResult = req.body;
-
+// Validation middleware
+const validateLabResult = (req: Request<{}, {}, LabResult>, res: Response, next: any) => {
+    const { patientId, labType, result, receivedAt } = req.body;
+    
     if (!patientId || !labType || !result || !receivedAt) {
-        res.status(400).json({ error: 'Missing required fields' });
-        return;
+        return res.status(400).json({ 
+            error: 'Missing required fields: patientId, labType, result, receivedAt' 
+        });
     }
+    next();
+};
 
-    const labResult: LabResult = {
-        patientId,
-        labType,
-        result,
-        receivedAt,
-        badRequest: req.body.badRequest
-    };
+app.post('/lab-results', validateLabResult, async (req: Request<{}, {}, LabResult>, res: Response) => {
+    const labResult: LabResult = req.body;
 
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     console.log('📥 JOB RECEIVED');
@@ -47,7 +44,6 @@ app.post('/lab-results', async (req: Request<{}, {}, LabResult>, res: Response) 
 
 app.get('/stats', async (req: Request, res: Response) => {
     const completedCount = await labResultsQueue.getCompletedCount();
-
     const deadLetterWaiting = await deadLetterQueue.getWaitingCount();
     const deadLetterCompleted = await deadLetterQueue.getCompletedCount();
     const deadLetterCount = deadLetterWaiting + deadLetterCompleted;
@@ -59,6 +55,28 @@ app.get('/stats', async (req: Request, res: Response) => {
     });
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+// Health check endpoint for Cloud Run
+app.get('/health', (req: Request, res: Response) => {
+    res.status(200).json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
+// CRITICAL: Listen on the PORT environment variable
+const server = app.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// Graceful shutdown
+process.on('SIGINT', () => {
+    console.log('Shutting down gracefully...');
+    server.close(() => {
+        process.exit(0);
+    });
+});
+
+process.on('SIGTERM', () => {
+    console.log('Shutting down gracefully...');
+    server.close(() => {
+        process.exit(0);
+    });
 });
