@@ -5,25 +5,6 @@ import { MAX_RETRIES, PORT } from './config';
 const app = express();
 app.use(express.json());
 
-// Lazy load queues only when needed
-let labResultsQueue: any = null;
-let deadLetterQueue: any = null;
-
-async function getQueues() {
-    if (!labResultsQueue) {
-        try {
-            const { labResultsQueue: lrq, deadLetterQueue: dlq } = await import('./queue');
-            labResultsQueue = lrq;
-            deadLetterQueue = dlq;
-            console.log('✅ Connected to Redis queues');
-        } catch (error) {
-            console.error('❌ Failed to connect to Redis:', (error as Error).message);
-            throw error;
-        }
-    }
-    return { labResultsQueue, deadLetterQueue };
-}
-
 // Validation middleware
 const validateLabResult = (req: Request<{}, {}, LabResult>, res: Response, next: any) => {
     const { patientId, labType, result, receivedAt } = req.body;
@@ -45,10 +26,12 @@ app.post('/lab-results', validateLabResult, async (req: Request<{}, {}, LabResul
     console.log(`Patient ID: ${labResult.patientId}`);
     console.log(`Lab Type: ${labResult.labType}`);
     console.log(`Timestamp: ${new Date().toISOString()}`);
+    console.log(`Redis Host: ${process.env.REDIS_HOST}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
     try {
-        const { labResultsQueue } = await getQueues();
+        const { getLabResultsQueue } = await import('./queue');
+        const labResultsQueue = getLabResultsQueue();
         
         await new Promise(resolve => setTimeout(resolve, 500));
 
@@ -73,7 +56,9 @@ app.post('/lab-results', validateLabResult, async (req: Request<{}, {}, LabResul
 
 app.get('/stats', async (req: Request, res: Response) => {
     try {
-        const { labResultsQueue, deadLetterQueue } = await getQueues();
+        const { getLabResultsQueue, getDeadLetterQueue } = await import('./queue');
+        const labResultsQueue = getLabResultsQueue();
+        const deadLetterQueue = getDeadLetterQueue();
         
         const completedCount = await labResultsQueue.getCompletedCount();
         const deadLetterWaiting = await deadLetterQueue.getWaitingCount();
