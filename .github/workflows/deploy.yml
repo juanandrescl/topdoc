@@ -1,0 +1,54 @@
+name: Deploy to Cloud Run
+
+# Trigger: This workflow runs when you push to the pipeline_dev branch
+on:
+  push:
+    branches: [ pipeline_dev ]
+
+# Environment variables used throughout the workflow
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}      # Your GCP project ID from secrets
+  SERVICE: topdoc-api                            # Name of your Cloud Run service
+  REGION: us-central1                            # GCP region where service deploys
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest                       # Use Ubuntu runner
+    
+    steps:
+    # Step 1: Download your code from GitHub
+    - name: Checkout code
+      uses: actions/checkout@v3
+    
+    # Step 2: Setup Google Cloud SDK with authentication
+    - name: Setup Cloud SDK
+      uses: google-github-actions/setup-gcloud@v0
+      with:
+        project_id: ${{ secrets.GCP_PROJECT_ID }}  # Use your project ID secret
+        service_account_key: ${{ secrets.GCP_SA_KEY }}  # Use your service account key
+        export_default_credentials: true          # Make credentials available to other steps
+    
+    # Step 3: Configure Docker to push to Artifact Registry
+    - name: Configure Docker
+      run: gcloud auth configure-docker us-central1-docker.pkg.dev
+    
+    # Step 4: Build and Push Docker Image
+    - name: Build Docker Image
+      run: |
+        # Build image with unique tag (using GitHub commit SHA)
+        docker build -f Dockerfile.prod -t us-central1-docker.pkg.dev/$PROJECT_ID/topdoc/$SERVICE:$GITHUB_SHA .
+        # Push image to Artifact Registry
+        docker push us-central1-docker.pkg.dev/$PROJECT_ID/topdoc/$SERVICE:$GITHUB_SHA
+    
+    # Step 5: Deploy to Cloud Run
+    - name: Deploy to Cloud Run
+      run: |
+        gcloud run deploy $SERVICE \
+          --image us-central1-docker.pkg.dev/$PROJECT_ID/topdoc/$SERVICE:$GITHUB_SHA \
+          --region $REGION \
+          --allow-unauthenticated \
+          --set-env-vars="PORT=8080,MAX_RETRIES=3" \
+          --memory=512Mi \
+          --cpu=1 \
+          --min-instances=0 \
+          --max-instances=10
